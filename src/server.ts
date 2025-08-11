@@ -1,0 +1,120 @@
+import dotenv from 'dotenv'
+import app from './app'
+import logger from './utils/logger'
+import { connectDatabase } from './config/database'
+import { initializeSSMConfiguration, shouldUseSSM } from './config/ssmParameterStore'
+import { initializeRedis, disconnectRedis, setSSMConfiguration } from './config/redis'
+
+dotenv.config()
+
+const PORT = process.env.PORT || 3000
+const environment = process.env.NODE_ENV || 'development'
+const isProduction = environment === 'nonprod' || environment === 'production' || environment === 'local'
+
+const initializeSSM = async (): Promise<void> => {
+    if (!shouldUseSSM()) return
+
+    try {
+        const ssmConfig = await initializeSSMConfiguration()
+        if (ssmConfig) {
+            setSSMConfiguration(ssmConfig)
+        } else {
+            logger.warn('⚠️ SSM configuration failed to load')
+        }
+    } catch (error) {
+        logger.error('SSM initialization failed:', error)
+    }
+}
+
+const initializeDatabase = async (): Promise<void> => {
+    if (!isProduction) return
+
+    try {
+        await connectDatabase()
+    } catch (error) {
+        logger.error('Database connection failed:', error)
+        throw error
+    }
+}
+
+const initializeCache = async (): Promise<void> => {
+    try {
+        await initializeRedis()
+    } catch (error) {
+        logger.warn('Redis unavailable, continuing without cache')
+    }
+}
+
+
+
+const initializeServices = async (): Promise<void> => {
+    try {
+        logger.info(`🚀 Initializing services [${environment}]...`)
+
+        await initializeSSM()
+        await initializeDatabase()
+        await initializeCache()
+
+        logger.info('✅ Services initialized successfully')
+    } catch (error) {
+        logger.error('Service initialization failed:', error)
+        throw error
+    }
+}
+
+const startApplication = async (): Promise<import('http').Server> => {
+    try {
+        await initializeServices()
+
+        const appServer = app.listen(PORT, () => {
+            logger.info(`🚀 Server running on port ${PORT}`)
+            logger.info(`📚 Docs: ${process.env.SERVER_URL}/api/v1/product-spec/api-docs`)
+            logger.info(`🏥 Health: ${process.env.SERVER_URL}/healthcheck`)
+
+            if (shouldUseSSM()) {
+                logger.info('🔧 SSM: Enabled')
+            }
+        })
+
+        process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
+        process.on('SIGINT', () => gracefulShutdown('SIGINT'))
+
+        return appServer
+    } catch (error) {
+        logger.error('Application startup failed:', error)
+        process.exit(1)
+    }
+}
+
+const gracefulShutdown = async (signal: string): Promise<void> => {
+    logger.info(`${signal} received, shutting down...`)
+
+    try {
+        await disconnectRedis()
+
+        if (server) {
+            server.close(() => {
+                logger.info('Server closed')
+                process.exit(0)
+            })
+        } else {
+            process.exit(0)
+        }
+    } catch (error) {
+        logger.error('Shutdown error:', error)
+        process.exit(1)
+    }
+}
+
+// Export server for testing
+export let server: import('http').Server
+
+// Start the application
+startApplication()
+    .then((appServer) => {
+        server = appServer
+    })
+    .catch((error) => {
+        logger.error('Failed to start application:', error)
+        process.exit(1)
+    })
