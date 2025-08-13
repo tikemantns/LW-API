@@ -52,7 +52,7 @@ export const createNotification = async (notificationData: {
     message: string
     type: string
     relatedId?: string
-    data?: any
+    data?: Record<string, unknown>
 }) => {
     try {
         const notification = new Notification(notificationData)
@@ -62,5 +62,35 @@ export const createNotification = async (notificationData: {
     } catch (error) {
         logger.error('Error creating notification:', error)
         throw new Error('Failed to create notification')
+    }
+}
+
+export const markOneAsRead = async (userId: string, notificationId: string) => {
+    try {
+        await Notification.updateOne({ _id: notificationId, userId }, { read: true })
+        return true
+    } catch (error) {
+        logger.error('Error marking notification as read:', error)
+        throw new Error('Failed to update notification')
+    }
+}
+
+export const markAllAsRead = async (userId: string) => {
+    try {
+        await Notification.updateMany({ userId, read: false }, { read: true })
+        return true
+    } catch (error) {
+        logger.error('Error marking all notifications as read:', error)
+        throw new Error('Failed to update notifications')
+    }
+}
+
+export const getUnreadCount = async (userId: string) => {
+    try {
+        const count = await Notification.countDocuments({ userId, read: false })
+        return count
+    } catch (error) {
+        logger.error('Error getting unread count:', error)
+        throw new Error('Failed to get unread count')
     }
 }

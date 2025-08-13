@@ -54,18 +54,14 @@ export const sendMessage = async (messageData: {
     workId?: string
 }) => {
     try {
-        // Generate conversation ID
-        const participants = [messageData.senderId, messageData.recipientId].sort()
-        const conversationId = participants.join('-')
-
         // Create or update conversation
         let conversation = await Conversation.findOne({
-            participants: { $all: participants }
+            participants: { $all: [messageData.senderId, messageData.recipientId] }
         })
 
         if (!conversation) {
             conversation = await Conversation.create({
-                participants,
+                participants: [messageData.senderId, messageData.recipientId],
                 workId: messageData.workId,
                 lastMessage: messageData.message,
                 lastMessageAt: new Date(),
@@ -74,10 +70,8 @@ export const sendMessage = async (messageData: {
         } else {
             conversation.lastMessage = messageData.message
             conversation.lastMessageAt = new Date()
-            
             const currentUnread = conversation.unreadCount?.get(messageData.recipientId) || 0
             conversation.unreadCount?.set(messageData.recipientId, currentUnread + 1)
-            
             await conversation.save()
         }
 
@@ -96,5 +90,95 @@ export const sendMessage = async (messageData: {
     } catch (error) {
         logger.error('Failed to send message:', error)
         throw new Error('Failed to send message')
+    }
+}
+
+export const sendMessageToConversation = async (params: {
+    senderId: string
+    conversationId: string
+    message: string
+}) => {
+    try {
+        const conversation = await Conversation.findById(params.conversationId)
+        if (!conversation || !conversation.participants.some(p => p.toString() === params.senderId)) {
+            throw new Error('Conversation not found or access denied')
+        }
+
+        // Determine recipient as the other participant
+        const recipientId = conversation.participants.find(p => p.toString() !== params.senderId)?.toString()
+        if (!recipientId) {
+            throw new Error('Recipient not found in conversation')
+        }
+
+        // Update conversation last message and unread count
+        conversation.lastMessage = params.message
+        conversation.lastMessageAt = new Date()
+        const currentUnread = conversation.unreadCount?.get(recipientId) || 0
+        conversation.unreadCount?.set(recipientId, currentUnread + 1)
+        await conversation.save()
+
+        // Create message
+        const msg = await Message.create({
+            conversationId: conversation._id.toString(),
+            sender: params.senderId,
+            recipient: recipientId,
+            message: params.message
+        })
+
+        return await Message.findById(msg._id)
+            .populate('sender', 'name userType')
+            .populate('recipient', 'name userType')
+    } catch (error) {
+        logger.error('Failed to send message to conversation:', error)
+        throw new Error('Failed to send message')
+    }
+}
+
+export const markConversationAsRead = async (conversationId: string, userId: string) => {
+    try {
+        const conversation = await Conversation.findOne({ _id: conversationId, participants: userId })
+        if (!conversation) {
+            throw new Error('Conversation not found or access denied')
+        }
+
+        // Reset unread count for this user
+        conversation.unreadCount?.set(userId, 0)
+        await conversation.save()
+
+        // Mark messages read for this user
+        await Message.updateMany(
+            { conversationId, recipient: userId, readAt: null },
+            { readAt: new Date() }
+        )
+
+        return true
+    } catch (error) {
+        logger.error('Failed to mark conversation as read:', error)
+        throw new Error('Failed to mark as read')
+    }
+}
+
+export const createConversation = async (userId: string, participantId: string, workId?: string) => {
+    try {
+        let conversation = await Conversation.findOne({
+            participants: { $all: [userId, participantId] },
+            workId: workId || undefined
+        })
+
+        if (!conversation) {
+            conversation = await Conversation.create({
+                participants: [userId, participantId],
+                workId,
+                lastMessage: '',
+                lastMessageAt: new Date(0)
+            })
+        }
+
+        await conversation.populate('participants', 'name userType')
+        await conversation.populate('workId', 'title')
+        return conversation
+    } catch (error) {
+        logger.error('Failed to create conversation:', error)
+        throw new Error('Failed to create conversation')
     }
 }

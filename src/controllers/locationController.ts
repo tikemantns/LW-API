@@ -29,6 +29,42 @@ export const searchLocations = async (req: JWTAuthRequest, res: Response) => {
     }
 }
 
+export const reverseGeocode = async (req: JWTAuthRequest, res: Response) => {
+    try {
+        const { latitude, longitude } = req.query
+
+        if (!latitude || !longitude) {
+            return res.status(400).json({
+                success: false,
+                error: 'Latitude and longitude are required'
+            })
+        }
+
+        const lat = parseFloat(latitude as string)
+        const lng = parseFloat(longitude as string)
+
+        if (isNaN(lat) || isNaN(lng)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid latitude or longitude values'
+            })
+        }
+
+        const location = await locationService.reverseGeocode(lat, lng)
+
+        res.json({
+            success: true,
+            data: location
+        })
+    } catch (error) {
+        logger.error('Failed to reverse geocode:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to reverse geocode location'
+        })
+    }
+}
+
 export const saveLocation = async (req: JWTAuthRequest, res: Response) => {
     try {
         if (!req.user?.userId) {

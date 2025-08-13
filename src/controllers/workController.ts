@@ -32,6 +32,24 @@ export const getWorks = async (req: Request, res: Response) => {
     }
 }
 
+export const getWorkCategories = async (req: Request, res: Response) => {
+    try {
+        const categories = await workService.getWorkCategories()
+
+        const response: ApiResponse = {
+            success: true,
+            data: { categories }
+        }
+
+        res.status(200).json(response)
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get work categories'
+        })
+    }
+}
+
 export const createWork = async (req: JWTAuthRequest, res: Response) => {
     try {
         if (!req.user?.userId) {

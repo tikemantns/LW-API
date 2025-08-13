@@ -97,3 +97,56 @@ export const sendMessage = async (req: JWTAuthRequest, res: Response) => {
         })
     }
 }
+
+export const sendMessageToConversation = async (req: JWTAuthRequest, res: Response) => {
+    try {
+        if (!req.user?.userId) {
+            return res.status(401).json({ success: false, error: 'Authentication required' })
+        }
+        const { conversationId } = req.params
+        const { message } = req.body
+        if (!message) {
+            return res.status(400).json({ success: false, error: 'Message is required' })
+        }
+        const sent = await messageService.sendMessageToConversation({
+            senderId: req.user.userId,
+            conversationId,
+            message
+        })
+        res.status(201).json({ success: true, data: sent, message: 'Message sent successfully' })
+    } catch (error) {
+        logger.error('Failed to send message to conversation:', error)
+        res.status(500).json({ success: false, error: 'Failed to send message' })
+    }
+}
+
+export const markAsRead = async (req: JWTAuthRequest, res: Response) => {
+    try {
+        if (!req.user?.userId) {
+            return res.status(401).json({ success: false, error: 'Authentication required' })
+        }
+        const { conversationId } = req.params
+        await messageService.markConversationAsRead(conversationId, req.user.userId)
+        res.json({ success: true, message: 'Conversation marked as read' })
+    } catch (error) {
+        logger.error('Failed to mark conversation as read:', error)
+        res.status(500).json({ success: false, error: 'Failed to mark as read' })
+    }
+}
+
+export const createConversation = async (req: JWTAuthRequest, res: Response) => {
+    try {
+        if (!req.user?.userId) {
+            return res.status(401).json({ success: false, error: 'Authentication required' })
+        }
+        const { participantId, workId } = req.body
+        if (!participantId) {
+            return res.status(400).json({ success: false, error: 'participantId is required' })
+        }
+        const conv = await messageService.createConversation(req.user.userId, participantId, workId)
+        res.status(201).json({ success: true, data: { conversation: conv } })
+    } catch (error) {
+        logger.error('Failed to create conversation:', error)
+        res.status(500).json({ success: false, error: 'Failed to create conversation' })
+    }
+}

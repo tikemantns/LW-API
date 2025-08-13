@@ -60,7 +60,7 @@ export const buildMongoDBUri = (): string => {
     // const password = credentials.password
     // const database = credentials.database
 
-    return 'mongodb://localhost:27017/localworkDB' //`mongodb://${username}:${password}@${host}:${port}/${database}?ssl=true&retryWrites=false`
+    return 'mongodb://localhost:27017/localworkDB' //'mongodb+srv://localWork:<localwork@development>@lw-cluster.ckoak9d.mongodb.net/localworkDB?retryWrites=true&w=majority&appName=LW-Cluster'//
 }
 
 export const connectDatabase = async () => {
@@ -91,6 +91,11 @@ export const connectDatabase = async () => {
         
     } catch (error) {
         logger.error('MongoDB connection error:', error)
+        // In development, don't exit if database fails
+        if (process.env.NODE_ENV === 'development') {
+            logger.warn('Continuing without database in development mode')
+            return
+        }
         process.exit(1)
     }
 }

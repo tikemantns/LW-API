@@ -9,6 +9,12 @@ router.get('/profile', verifyToken, userController.getProfile)
 router.put('/profile', verifyToken, userController.updateProfile)
 router.post('/profile/photo', verifyToken, userController.uploadProfilePhoto)
 
+// Nearby workers (must be before /:userId to avoid conflicts)
+router.get('/nearby-workers', userController.getNearbyWorkers)
+
+// Get specific user by ID (for worker profiles)
+router.get('/:userId', userController.getUserById)
+
 // Work portfolio management (for workers)
 router.get('/portfolio', verifyToken, userController.getPortfolio)
 router.post('/portfolio/media', verifyToken, userController.addPortfolioMedia)

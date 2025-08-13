@@ -680,3 +680,84 @@ export const removeDeviceToken = async (req: JWTAuthRequest, res: Response) => {
         })
     }
 }
+
+// Get user by ID (for public profile viewing)
+export const getUserById = async (req: JWTAuthRequest, res: Response) => {
+    try {
+        const { userId } = req.params
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID is required'
+            })
+        }
+
+        const user = await userService.getUserById(userId)
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            })
+        }
+
+        // Return public user information only
+        const publicUser = {
+            _id: user._id,
+            name: user.name,
+            userType: user.userType,
+            profilePhoto: user.profilePhoto,
+            location: user.location,
+            workPortfolio: user.workPortfolio,
+            availability: user.availability,
+            statistics: user.statistics,
+            createdAt: user.createdAt
+        }
+
+        const response: ApiResponse = {
+            success: true,
+            data: { user: publicUser }
+        }
+
+        res.status(200).json(response)
+    } catch (error) {
+        logger.error('Failed to get user by ID:', error)
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get user'
+        })
+    }
+}
+
+// Get nearby workers
+export const getNearbyWorkers = async (req: JWTAuthRequest, res: Response) => {
+    try {
+        const { latitude, longitude, radius = 10 } = req.query
+        
+        if (!latitude || !longitude) {
+            return res.status(400).json({
+                success: false,
+                error: 'Latitude and longitude are required'
+            })
+        }
+
+        const workers = await userService.getNearbyWorkers(
+            parseFloat(latitude as string),
+            parseFloat(longitude as string),
+            parseInt(radius as string)
+        )
+
+        const response: ApiResponse = {
+            success: true,
+            data: { workers }
+        }
+
+        res.status(200).json(response)
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get nearby workers'
+        })
+    }
+}

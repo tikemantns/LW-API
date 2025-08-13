@@ -6,6 +6,7 @@ const router = Router()
 
 // Work management routes
 router.get('/', optionalAuth, workController.getWorks)
+router.get('/categories', workController.getWorkCategories)
 router.post('/', verifyToken, workController.createWork)
 router.get('/my-works', verifyToken, workController.getMyWorks)
 router.get('/applied', verifyToken, workController.getAppliedWorks)

@@ -1,6 +1,19 @@
 import { User } from '../models'
 import logger from '../utils/logger'
 
+// Define interface for worker with distance
+interface WorkerWithDistance {
+    _id: string
+    name: string
+    userType: string
+    profilePhoto?: string
+    location?: any
+    workPortfolio?: any
+    availability?: any
+    statistics?: any
+    distance?: number
+}
+
 // Profile Management
 export const getUserById = async (userId: string) => {
     try {
@@ -10,6 +23,60 @@ export const getUserById = async (userId: string) => {
         logger.error('Failed to get user by ID:', error)
         throw new Error('Failed to get user')
     }
+}
+
+// Get nearby workers based on location
+export const getNearbyWorkers = async (latitude: number, longitude: number, radiusKm: number = 10) => {
+    try {
+        // Get all workers with location data
+        const workers = await User.find({
+            userType: 'worker',
+            'location.latitude': { $exists: true },
+            'location.longitude': { $exists: true }
+        })
+            .select('name userType profilePhoto location workPortfolio availability statistics')
+            .limit(50)
+
+        // Filter workers by distance and add calculated distance
+        const workersWithDistance = workers
+            .map(worker => {
+                const workerObj = worker.toObject() as WorkerWithDistance
+                if (workerObj.location?.latitude && workerObj.location?.longitude) {
+                    const distance = calculateDistance(
+                        latitude,
+                        longitude,
+                        workerObj.location.latitude,
+                        workerObj.location.longitude
+                    )
+                    workerObj.distance = Math.round(distance * 100) / 100 // Round to 2 decimal places
+                    return workerObj
+                }
+                return null
+            })
+            .filter(worker => worker !== null && (worker.distance || 0) <= radiusKm) as WorkerWithDistance[]
+
+        // Sort by distance
+        workersWithDistance.sort((a: WorkerWithDistance, b: WorkerWithDistance) => (a.distance || 0) - (b.distance || 0))
+
+        return workersWithDistance
+    } catch (error) {
+        logger.error('Failed to get nearby workers:', error)
+        throw new Error('Failed to get nearby workers')
+    }
+}
+
+// Helper function to calculate distance between two points
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371 // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLon = (lon2 - lon1) * Math.PI / 180
+    const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    const d = R * c // Distance in km
+    return d
 }
 
 export const updateUser = async (userId: string, updateData: {

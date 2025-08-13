@@ -5,7 +5,7 @@
   "main": "server.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "env-cmd -f .env.local ts-node server.ts",
+    "dev": "env-cmd -f .env.local nodemon server.ts",
     "nonprod": "env-cmd -f .env.nonprod ts-node server.ts",
     "start:dev": "node dist/server.js",
     "start:nonprod": "node dist/server.js",

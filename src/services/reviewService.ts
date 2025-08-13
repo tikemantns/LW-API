@@ -1,5 +1,10 @@
 import { Review } from '../models'
+import { Types } from 'mongoose'
 import logger from '../utils/logger'
+
+const isValidObjectId = (id: string): boolean => {
+    return Types.ObjectId.isValid(id) && (String(new Types.ObjectId(id)) === id)
+}
 
 export const createReview = async (reviewData: {
     workId: string
@@ -10,6 +15,13 @@ export const createReview = async (reviewData: {
     reviewType: 'worker_review' | 'employer_review'
 }) => {
     try {
+        // Validate ObjectIds
+        if (!isValidObjectId(reviewData.workId) || 
+            !isValidObjectId(reviewData.reviewerId) || 
+            !isValidObjectId(reviewData.revieweeId)) {
+            throw new Error('Invalid ID format provided')
+        }
+
         // Check if review already exists
         const existingReview = await Review.findOne({
             workId: reviewData.workId,
@@ -33,6 +45,12 @@ export const createReview = async (reviewData: {
 
 export const getUserReviews = async (userId: string) => {
     try {
+        // Validate ObjectId
+        if (!isValidObjectId(userId)) {
+            // Return empty array for invalid IDs instead of throwing error
+            return []
+        }
+
         const reviews = await Review.find({ revieweeId: userId })
             .populate('reviewerId', 'name profilePhoto')
             .populate('workId', 'title category')
@@ -47,6 +65,12 @@ export const getUserReviews = async (userId: string) => {
 
 export const getWorkReviews = async (workId: string) => {
     try {
+        // Validate ObjectId
+        if (!isValidObjectId(workId)) {
+            // Return empty array for invalid IDs instead of throwing error
+            return []
+        }
+
         const reviews = await Review.find({ workId })
             .populate('reviewerId', 'name profilePhoto')
             .populate('revieweeId', 'name profilePhoto')
@@ -61,8 +85,17 @@ export const getWorkReviews = async (workId: string) => {
 
 export const getUserRatingStats = async (userId: string) => {
     try {
+        // Validate ObjectId
+        if (!isValidObjectId(userId)) {
+            return {
+                averageRating: 0,
+                totalReviews: 0,
+                ratingBreakdown: []
+            }
+        }
+
         const stats = await Review.aggregate([
-            { $match: { revieweeId: userId } },
+            { $match: { revieweeId: new Types.ObjectId(userId) } },
             {
                 $group: {
                     _id: null,

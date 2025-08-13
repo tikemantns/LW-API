@@ -27,12 +27,15 @@ const initializeSSM = async (): Promise<void> => {
 }
 
 const initializeDatabase = async (): Promise<void> => {
-    if (!isProduction) return
-
     try {
         await connectDatabase()
     } catch (error) {
         logger.error('Database connection failed:', error)
+        // In development, continue without database if connection fails
+        if (environment === 'development') {
+            logger.warn('Continuing without database in development mode')
+            return
+        }
         throw error
     }
 }

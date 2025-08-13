@@ -11,6 +11,54 @@ export const getWorks = async (filters: {
     sortBy?: string
 }) => {
     try {
+        // In development without MongoDB, return mock data
+        if (process.env.NODE_ENV === 'development' && !process.env.FORCE_MONGODB) {
+            const mockWorks = [
+                {
+                    _id: 'work1',
+                    title: 'Plumbing Fix Required',
+                    description: 'Need to fix a leaky faucet in the kitchen',
+                    category: 'plumbing',
+                    location: 'New York, NY',
+                    pay: '$50',
+                    duration: '2 hours',
+                    status: 'active',
+                    postedBy: {
+                        _id: 'user1',
+                        name: 'John Doe',
+                        userType: 'client'
+                    },
+                    createdAt: new Date()
+                },
+                {
+                    _id: 'work2',
+                    title: 'House Cleaning',
+                    description: 'Weekly house cleaning service needed',
+                    category: 'cleaning',
+                    location: 'Brooklyn, NY',
+                    pay: '$80',
+                    duration: '4 hours',
+                    status: 'active',
+                    postedBy: {
+                        _id: 'user2',
+                        name: 'Jane Smith',
+                        userType: 'client'
+                    },
+                    createdAt: new Date()
+                }
+            ];
+
+            return {
+                works: mockWorks,
+                pagination: {
+                    page: filters.page,
+                    limit: filters.limit,
+                    total: mockWorks.length,
+                    pages: Math.ceil(mockWorks.length / filters.limit)
+                }
+            }
+        }
+
         const { category, location, radius, page, limit, sortBy } = filters
         const skip = (page - 1) * limit
 
@@ -201,5 +249,35 @@ export const getAppliedWorks = async (userId: string) => {
     } catch (error) {
         logger.error('Failed to get applied works:', error)
         throw new Error('Failed to get applied works')
+    }
+}
+
+export const getWorkCategories = async () => {
+    try {
+        // Return predefined work categories
+        const categories = [
+            { id: 'construction', name: 'Construction', icon: '🏗️' },
+            { id: 'cleaning', name: 'Cleaning', icon: '🧹' },
+            { id: 'plumbing', name: 'Plumbing', icon: '🔧' },
+            { id: 'electrical', name: 'Electrical', icon: '⚡' },
+            { id: 'gardening', name: 'Gardening', icon: '🌱' },
+            { id: 'painting', name: 'Painting', icon: '🎨' },
+            { id: 'moving', name: 'Moving', icon: '📦' },
+            { id: 'handyman', name: 'Handyman', icon: '🔨' },
+            { id: 'cooking', name: 'Cooking', icon: '👨‍🍳' },
+            { id: 'delivery', name: 'Delivery', icon: '🚚' },
+            { id: 'tutoring', name: 'Tutoring', icon: '📚' },
+            { id: 'petcare', name: 'Pet Care', icon: '🐕' },
+            { id: 'childcare', name: 'Child Care', icon: '👶' },
+            { id: 'eldercare', name: 'Elder Care', icon: '👴' },
+            { id: 'technology', name: 'Technology', icon: '💻' },
+            { id: 'automotive', name: 'Automotive', icon: '🚗' },
+            { id: 'other', name: 'Other', icon: '📋' }
+        ]
+
+        return categories
+    } catch (error) {
+        logger.error('Error getting work categories:', error)
+        throw new Error('Failed to get work categories')
     }
 }

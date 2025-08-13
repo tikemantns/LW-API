@@ -30,6 +30,28 @@ export const searchLocations = async (query: string) => {
     }
 }
 
+export const reverseGeocode = async (latitude: number, longitude: number) => {
+    try {
+        // This would integrate with a reverse geocoding service like Google Maps API
+        // For now, return mock data based on coordinates
+        const mockLocation = {
+            address: `${Math.round(latitude * 1000) / 1000} St, ${Math.round(longitude * 1000) / 1000} Ave`,
+            city: 'Sample City',
+            state: 'Sample State',
+            country: 'Sample Country',
+            postalCode: '12345',
+            latitude,
+            longitude,
+            formattedAddress: `${Math.round(latitude * 1000) / 1000} St, Sample City, Sample State 12345`
+        }
+
+        return mockLocation
+    } catch (error) {
+        logger.error('Error in reverse geocoding:', error)
+        throw new Error('Failed to reverse geocode location')
+    }
+}
+
 export const saveUserLocation = async (userId: string, locationData: {
     name: string
     latitude: number

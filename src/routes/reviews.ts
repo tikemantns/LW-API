@@ -1,8 +1,11 @@
 import { Router } from 'express'
 import { verifyToken } from '../middleware/auth'
-import { createReview, getUserReviews, getWorkReviews } from '../controllers/reviewController'
+import { createReview, getUserReviews, getWorkReviews, getReviews } from '../controllers/reviewController'
 
 const router = Router()
+
+// Get reviews with filters
+router.get('/', getReviews)
 
 // Create review
 router.post('/', verifyToken, createReview)

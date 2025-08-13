@@ -22,6 +22,7 @@ import { cacheMiddleware } from './middleware/cache'
 import { performanceMetricsMiddleware, performanceMetricsHandler } from './middleware/performance'
 import logger from './utils/logger'
 import os from 'os'
+import auditRoute from './routes/audit'
 
 const app = express()
 
@@ -132,6 +133,7 @@ app.use('/api/v1/lw/payments', paymentRoute)
 app.use('/api/v1/lw/reviews', reviewRoute)
 app.use('/api/v1/lw/analytics', analyticsRoute)
 app.use('/api/v1/lw/locations', locationRoute)
+app.use('/api/v1/lw/audit', auditRoute)
 
 // Legacy route (deprecated)
 // app.use('/api/v1/lw', lwRoute)
