@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "env-cmd -f .env.local nodemon server.ts",
-    "nonprod": "env-cmd -f .env.nonprod ts-node server.ts",
+    "nonprod": "env-cmd -f .env.nonprod nodemon server.ts",
     "start:dev": "node dist/server.js",
     "start:nonprod": "node dist/server.js",
     "start:prod": "node dist/server.js",
