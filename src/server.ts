@@ -2,7 +2,6 @@ import dotenv from 'dotenv'
 import app from './app'
 import logger from './utils/logger'
 import { connectDatabase } from './config/database'
-import { initializeSSMConfiguration, shouldUseSSM } from './config/ssmParameterStore'
 import { initializeRedis, disconnectRedis, setSSMConfiguration } from './config/redis'
 
 dotenv.config()
@@ -10,21 +9,6 @@ dotenv.config()
 const PORT = parseInt(process.env.PORT || '3000', 10)
 const environment = process.env.NODE_ENV || 'development'
 const isProduction = environment === 'nonprod' || environment === 'production' || environment === 'local'
-
-const initializeSSM = async (): Promise<void> => {
-    if (!shouldUseSSM()) return
-
-    try {
-        const ssmConfig = await initializeSSMConfiguration()
-        if (ssmConfig) {
-            setSSMConfiguration(ssmConfig)
-        } else {
-            logger.warn('⚠️ SSM configuration failed to load')
-        }
-    } catch (error) {
-        logger.error('SSM initialization failed:', error)
-    }
-}
 
 const initializeDatabase = async (): Promise<void> => {
     try {
@@ -54,9 +38,8 @@ const initializeServices = async (): Promise<void> => {
     try {
         logger.info(`🚀 Initializing services [${environment}]...`)
 
-        await initializeSSM()
         await initializeDatabase()
-        await initializeCache()
+        // await initializeCache()
 
         logger.info('✅ Services initialized successfully')
     } catch (error) {
@@ -74,10 +57,6 @@ const startApplication = async (): Promise<import('http').Server> => {
             logger.info(`🚀 Server running on ${HOST}:${PORT}`)
             logger.info(`📚 Docs: ${process.env.SERVER_URL}/api/v1/product-spec/api-docs`)
             logger.info(`🏥 Health: ${process.env.SERVER_URL}/healthcheck`)
-
-            if (shouldUseSSM()) {
-                logger.info('🔧 SSM: Enabled')
-            }
         })
 
         process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
