@@ -1,9 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import mongoose from 'mongoose'
 import logger from '../utils/logger'
-import { initializeSecretsManagerCredentials, shouldUseSecretsManager } from './secretsManager'
 import { DatabaseCredentials } from '../types/secretsManager'
 
-let databaseCredentials: DatabaseCredentials | null = null
+const databaseCredentials: DatabaseCredentials | null = null
 
 const connectionOptions = {
     maxPoolSize: parseInt(process.env.MONGODB_MAX_POOL_SIZE || '20', 10),
@@ -19,36 +19,14 @@ const connectionOptions = {
     retryWrites: false,
     retryReads: true,
     autoIndex: process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'prod' && process.env.NODE_ENV !== 'nonprod', // Disable autoIndex in production
-    ssl: false,
+    ssl: true,
     tlsAllowInvalidCertificates: false,
     bufferCommands: false, // Disable mongoose buffering
 }
 
 const getMongoDBUri = async (): Promise<string> => {
-    if (shouldUseSecretsManager()) {
-        if (!databaseCredentials) {
-            try {
-                const secrets = await initializeSecretsManagerCredentials(
-                    process.env.AWS_SECRET_NAME_DOCUMENTDB || '/sourcing/sps/productspec/documentdb'
-                )
-                if (secrets) {
-                    databaseCredentials = secrets as DatabaseCredentials
-                } else {
-                    logger.warn(
-                        'Failed to load database credentials from Secrets Manager, falling back to environment variables'
-                    )
-                }
-            } catch (error) {
-                logger.warn('Error loading credentials from Secrets Manager:', error)
-                logger.info('Falling back to environment variables')
-            }
-        }
-        // if (databaseCredentials) {
-        return buildMongoDBUri()
-        // }
-    }
 
-    const mongoUri = process.env.MONGODB_URI || ''
+    const mongoUri = buildMongoDBUri() || process.env.MONGODB_URI || ''
     logger.info('Using MongoDB URI from environment variables for NonProd/Production')
     return mongoUri
 }
@@ -60,13 +38,13 @@ export const buildMongoDBUri = (): string => {
     // const password = credentials.password
     // const database = credentials.database
 
-    return 'mongodb://localhost:27017/localworkDB' //'mongodb+srv://localWork:<localwork@development>@lw-cluster.ckoak9d.mongodb.net/localworkDB?retryWrites=true&w=majority&appName=LW-Cluster'//
+    return 'mongodb+srv://localWork:localwork@lw-cluster.ckoak9d.mongodb.net/localworkDB?retryWrites=true&w=majority&appName=LW-Cluster' //'mongodb://localhost:27017/localworkDB' 
 }
 
 export const connectDatabase = async () => {
     try {
         const mongoUri = await getMongoDBUri()
-
+        
         // Only enable debug logging in development
         if (process.env.NODE_ENV === 'development') {
             mongoose.set('debug', true)

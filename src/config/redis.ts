@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Redis from 'ioredis'
 import logger from '../utils/logger'
-import { initializeSecretsManagerCredentials } from './secretsManager'
 
 let redisClient: Redis | null = null
 
@@ -12,15 +12,8 @@ const getRedisConfiguration = async () => {
         return null
     }
 
-    let redisCredentials = null
-    try {
-        redisCredentials = await initializeSecretsManagerCredentials(
-            '/sourcing/sps/redis/credentials'
-        )
-    } catch (error) {
-        logger.warn('Failed to load Redis credentials from Secrets Manager:', error)
-    }
-
+    const redisCredentials: any = {}
+   
     const host = process.env.REDIS_HOST
     const port = parseInt(process.env.REDIS_PORT || '6379', 10)
     const username = process.env.REDIS_USERNAME || redisCredentials?.username

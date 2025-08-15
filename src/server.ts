@@ -7,7 +7,7 @@ import { initializeRedis, disconnectRedis, setSSMConfiguration } from './config/
 
 dotenv.config()
 
-const PORT = process.env.PORT || 3000
+const PORT = parseInt(process.env.PORT || '3000', 10)
 const environment = process.env.NODE_ENV || 'development'
 const isProduction = environment === 'nonprod' || environment === 'production' || environment === 'local'
 
@@ -69,8 +69,9 @@ const startApplication = async (): Promise<import('http').Server> => {
     try {
         await initializeServices()
 
-        const appServer = app.listen(PORT, () => {
-            logger.info(`🚀 Server running on port ${PORT}`)
+        const HOST = '0.0.0.0' // Bind to all interfaces for Android emulator access
+        const appServer = app.listen(PORT, HOST, () => {
+            logger.info(`🚀 Server running on ${HOST}:${PORT}`)
             logger.info(`📚 Docs: ${process.env.SERVER_URL}/api/v1/product-spec/api-docs`)
             logger.info(`🏥 Health: ${process.env.SERVER_URL}/healthcheck`)
 
